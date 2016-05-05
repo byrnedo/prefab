@@ -5,9 +5,11 @@ Quickly run docker containers for infrastructure when testing.
 ```
 import "github.com/byrnedo/prefab"
 
-id, url := StartMysqlContainer(func(c SetupOpts)SetupOpts{return c})
+id, url := prefab.StartMysqlContainer(func(c SetupOpts)SetupOpts{return c})
 
 // Connect using url :D
+
+prefab.Remove(id)
 ```
 
 Supports:
