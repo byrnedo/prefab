@@ -7,12 +7,15 @@ const (
 )
 
 
-func StartMongoContainer(clientOpts func(SetupOpts)SetupOpts) (id string, url string) {
+func StartMongoContainer(optsFuncs ...ConfOverrideFunc) (id string, url string) {
 
-	var confFunc = func(baseOpts SetupOpts)SetupOpts{
+
+	var confFunc = func(baseOpts *SetupOpts) {
 		baseOpts.Image = MongoImage
 		baseOpts.ExposedPort = 27017
-		return baseOpts
+		for _, optFunc := range optsFuncs {
+			optFunc(baseOpts)
+		}
 	}
 
 	con, ip, port, err := startStandardContainer(confFunc)

@@ -4,16 +4,21 @@ import (
 	"testing"
 	"github.com/apcera/nats"
 	"sync"
+	"time"
 )
 
 func TestStartNatsContainer(t *testing.T) {
-	id, url := StartNatsContainer(func(c SetupOpts)SetupOpts{return c})
+	id, url := StartNatsContainer()
 	t.Log(url)
 	if url == "" {
 		t.Error("url empty")
 	}
 	if id == "" {
 		t.Error("id empty")
+	}
+
+	if err := WaitForNats(url, 10 *time.Second) ; err != nil {
+		t.Error(err)
 	}
 
 	con, err := nats.Connect(url)

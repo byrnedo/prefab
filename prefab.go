@@ -1,13 +1,14 @@
 package prefab
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	gDoc "github.com/fsouza/go-dockerclient"
 	"github.com/satori/go.uuid"
 	"os"
 	"strconv"
+	"net"
+	"time"
+	"fmt"
 )
 
 var (
@@ -28,13 +29,10 @@ func init() {
 
 func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool) (*gDoc.Container, error) {
 
-	if imgs, err := dockCli.ListImages(gDoc.ListImagesOptions{Filter: image}); err != nil || len(imgs) == 0 {
-		if forcePull {
-			if err := dockCli.PullImage(gDoc.PullImageOptions{Repository: image, OutputStream: os.Stdout}, gDoc.AuthConfiguration{}); err != nil {
+	if imgs, err := dockCli.ListImages(gDoc.ListImagesOptions{Filter: image}); (err != nil || len(imgs) == 0) || forcePull {
+		if err := dockCli.PullImage(gDoc.PullImageOptions{Repository: image, OutputStream: os.Stdout}, gDoc.AuthConfiguration{}); err != nil {
 
-				return nil, err
-			}
-
+			return nil, err
 		}
 	}
 
@@ -70,39 +68,41 @@ type SetupOpts struct {
 	Envs          []string
 }
 
-func startStandardContainer(cnfOverride func(SetupOpts) SetupOpts) (*gDoc.Container, string, int, error) {
+type ConfOverrideFunc func(*SetupOpts)
+
+func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, string, int, error) {
 	var (
 		con           *gDoc.Container
 		hostPortStr   string
 		containerPort string
-		opts          SetupOpts
+		defaultCnf    *SetupOpts
 	)
 
-	defaultCnf := SetupOpts{
+	defaultCnf = &SetupOpts{
 		Protocol:  "tcp",
 		HostIp:    "127.0.0.1",
 		ForcePull: false,
 	}
 
-	opts = cnfOverride(defaultCnf)
+	cnfOverride(defaultCnf)
 
-	if opts.ExposedPort != 0 {
-		containerPort = strconv.Itoa(opts.ExposedPort)
+	if defaultCnf.ExposedPort != 0 {
+		containerPort = strconv.Itoa(defaultCnf.ExposedPort)
 	}
 
-	if opts.PublishedPort != 0 {
-		hostPortStr = strconv.Itoa(opts.PublishedPort)
+	if defaultCnf.PublishedPort != 0 {
+		hostPortStr = strconv.Itoa(defaultCnf.PublishedPort)
 	}
 
-	dockerExposedPort := gDoc.Port(containerPort + "/" + opts.Protocol)
+	dockerExposedPort := gDoc.Port(containerPort + "/" + defaultCnf.Protocol)
 
-	if id, err := Running(opts.Image); err != nil || len(id) < 1 {
-		if con, err = start(opts.Image, map[gDoc.Port][]gDoc.PortBinding{
+	if id, err := Running(defaultCnf.Image); err != nil || len(id) < 1 {
+		if con, err = start(defaultCnf.Image, map[gDoc.Port][]gDoc.PortBinding{
 			dockerExposedPort: []gDoc.PortBinding{gDoc.PortBinding{
-				HostIP:   opts.HostIp,
+				HostIP:   defaultCnf.HostIp,
 				HostPort: hostPortStr,
 			}},
-		}, opts.Envs, opts.ForcePull); err != nil {
+		}, defaultCnf.Envs, defaultCnf.ForcePull); err != nil {
 			return nil, "", 0, errors.New("Error starting container:" + err.Error())
 		}
 	}
@@ -113,8 +113,6 @@ func startStandardContainer(cnfOverride func(SetupOpts) SetupOpts) (*gDoc.Contai
 	if len(port) != 1 {
 		panic("No port mapping found")
 	}
-	v, _ := json.Marshal(con)
-	fmt.Println(string(v))
 	hostPort, _ := strconv.Atoi(port[0].HostPort)
 
 	return con, port[0].HostIP, hostPort, nil
@@ -172,4 +170,37 @@ func RemoveByImage(image string) (bool, error) {
 
 	return Remove(id)
 
+}
+
+func WaitForPort(addr string, timeout time.Duration) error {
+	timedOut := time.Now().Add(timeout)
+	buff := make([]byte, 10)
+	for {
+		if time.Now().After(timedOut) {
+			return errors.New("Timed out waiting to connect")
+		}
+		time.Sleep(1 * time.Second)
+		c, err := net.Dial("tcp", addr)
+		if err !=  nil {
+			fmt.Println(err)
+			continue
+		}
+		c.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		if readFromSocket(c, buff) {
+			return nil
+		}
+	}
+
+}
+
+func readFromSocket(c net.Conn, buffer []byte) bool {
+	_, err := c.Read(buffer)
+	c.Close()
+	if err != nil {
+		if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+			return true
+		}
+		return false
+	}
+	return true
 }

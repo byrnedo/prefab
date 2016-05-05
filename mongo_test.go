@@ -7,7 +7,7 @@ import (
 )
 
 func TestSetupMongoContainer(t *testing.T) {
-	id, url := StartMongoContainer(func(c SetupOpts)SetupOpts{return c})
+	id, url := StartMongoContainer()
 	t.Log(url)
 	if url == "" {
 		t.Error("url empty")

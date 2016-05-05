@@ -1,6 +1,12 @@
 package prefab
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
+	"errors"
+)
 
 const (
 	MysqlImage = "mysql:latest"
@@ -11,16 +17,19 @@ const (
 
 )
 
-func StartMysqlContainer(clientOpts func(SetupOpts)SetupOpts) (id string, url string) {
+func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
 
-	var confFunc = func(baseOpts SetupOpts)SetupOpts{
+	var confFunc = func(baseOpts *SetupOpts){
 		baseOpts.Image = MysqlImage
 		baseOpts.ExposedPort = 3306
 		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_ROOT_PASSWORD="+MysqlRootPassword)
 		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_PASSWORD="+MysqlPassword)
 		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_USER="+MysqlUser)
 		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_DATABASE="+MysqlDatabase)
-		return baseOpts
+
+		for _, clientOpt := range clientOpts {
+			clientOpt(baseOpts)
+		}
 	}
 
 	con, ip, port, err := startStandardContainer(confFunc)
@@ -29,4 +38,12 @@ func StartMysqlContainer(clientOpts func(SetupOpts)SetupOpts) (id string, url st
 	}
 
 	return con.ID, fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
+}
+
+func WaitForMysql(url string, timeout time.Duration) error {
+	cnf, err := mysql.ParseDSN(url)
+	if err != nil {
+		return errors.New("Failed to parse url: " + url )
+	}
+	return WaitForPort(cnf.Addr, timeout)
 }

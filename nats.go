@@ -1,17 +1,24 @@
 package prefab
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+	"errors"
+	nurl "net/url"
+)
 
 const (
 	NatsImage = "nats:latest"
 )
 
-func StartNatsContainer(clientOpts func(SetupOpts)SetupOpts) (id string, url string) {
+func StartNatsContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
 
-	var confFunc = func(baseOpts SetupOpts)SetupOpts{
+	var confFunc = func(baseOpts *SetupOpts){
 		baseOpts.Image = NatsImage
 		baseOpts.ExposedPort = 4222
-		return baseOpts
+		for _, clientOpt := range clientOpts {
+			clientOpt(baseOpts)
+		}
 	}
 
 	con, ip, port, err := startStandardContainer(confFunc)
@@ -19,4 +26,12 @@ func StartNatsContainer(clientOpts func(SetupOpts)SetupOpts) (id string, url str
 		panic(err.Error())
 	}
 	return con.ID, fmt.Sprintf("nats://%s:%d/", ip, port)
+}
+
+func WaitForNats(url string, timeout time.Duration) error {
+	u, err := nurl.Parse(url)
+	if err != nil {
+		return errors.New("Failed to parse url: " + url)
+	}
+	return WaitForPort(u.Host, timeout)
 }
