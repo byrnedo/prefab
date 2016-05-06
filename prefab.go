@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"net"
 	"time"
-	"fmt"
 )
 
 var (
@@ -180,12 +179,12 @@ func WaitForPort(addr string, timeout time.Duration) error {
 			return errors.New("Timed out waiting to connect")
 		}
 		time.Sleep(1 * time.Second)
-		c, err := net.Dial("tcp", addr)
+		c, err := net.DialTimeout("tcp", addr, 300 * time.Millisecond)
 		if err !=  nil {
-			fmt.Println(err)
 			continue
 		}
 		c.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+		c.SetDeadline(time.Now().Add(100 * time.Millisecond))
 		if readFromSocket(c, buff) {
 			return nil
 		}

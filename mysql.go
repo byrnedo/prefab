@@ -37,7 +37,7 @@ func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string)
 		panic(err.Error())
 	}
 
-	return con.ID, fmt.Sprintf("mysql://%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
+	return con.ID, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
 }
 
 func WaitForMysql(url string, timeout time.Duration) error {

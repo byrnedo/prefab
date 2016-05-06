@@ -1,6 +1,11 @@
 package prefab
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+	nurl "net/url"
+	"errors"
+)
 
 const (
 	MongoImage = "mongo:3"
@@ -23,5 +28,13 @@ func StartMongoContainer(optsFuncs ...ConfOverrideFunc) (id string, url string) 
 		panic(err.Error())
 	}
 	return con.ID, fmt.Sprintf("mongodb://%s:%d/", ip, port)
+}
+
+func WaitForMongo(url string, timeout time.Duration) error {
+	u, err := nurl.Parse(url)
+	if err != nil {
+		return errors.New("Failed to parse url: " + url)
+	}
+	return WaitForPort(u.Host, timeout)
 }
 
