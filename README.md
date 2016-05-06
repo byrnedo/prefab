@@ -6,7 +6,7 @@ Quickly run docker containers for infrastructure when testing.
 import "github.com/byrnedo/prefab"
 
 // create and run a mysql container for this session
-id, url := prefab.StartMysqlContainer(func(c SetupOpts)SetupOpts{return c})
+id, url := prefab.StartMysqlContainer()
 
 // helper to wait for port to open
 if err := prefab.WaitForMysql(url, 20 * time.Second); err != nil {
