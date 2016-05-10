@@ -3,9 +3,7 @@ package prefab
 import (
 	"fmt"
 	"time"
-	"errors"
 	"strings"
-	"github.com/go-sql-driver/mysql"
 )
 
 const (
@@ -41,9 +39,22 @@ func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string)
 }
 
 func WaitForMysql(url string, timeout time.Duration) error {
-	cnf, err := mysql.ParseDSN(url)
-	if err != nil {
-		return errors.New("Failed to parse url: " + url )
+
+	var (
+		addr string
+		addrStart int
+		addrEnd int
+	)
+
+	if atInd:= strings.Index(url, "@"); atInd > 0 {
+		addrStart = atInd + 1
 	}
-	return WaitForPort(cnf.Addr, timeout)
+
+	if slashInd := strings.Index(url, "/"); slashInd > 0 {
+		addrEnd = slashInd
+	}
+
+	addr = url[addrStart:addrEnd]
+
+	return WaitForPort(addr, timeout)
 }

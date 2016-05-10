@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"net"
 	"time"
+	"strings"
 )
 
 var (
@@ -172,17 +173,29 @@ func RemoveByImage(image string) (bool, error) {
 }
 
 func WaitForPort(addr string, timeout time.Duration) error {
-	timedOut := time.Now().Add(timeout)
-	buff := make([]byte, 10)
+
+	var (
+		proto = "tcp"
+		timedOut = time.Now().Add(timeout)
+		buff = make([]byte, 10)
+	)
+
+	if i := strings.Index(addr, "("); i > 0 {
+		proto = addr[0:i]
+		addr = addr[i+1: len(addr)-1]
+	}
+
 	for {
 		if time.Now().After(timedOut) {
 			return errors.New("Timed out waiting to connect")
 		}
 		time.Sleep(1 * time.Second)
-		c, err := net.DialTimeout("tcp", addr, 300 * time.Millisecond)
+
+		c, err := net.DialTimeout(proto, addr, 300 * time.Millisecond)
 		if err !=  nil {
 			continue
 		}
+
 		c.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 		c.SetDeadline(time.Now().Add(100 * time.Millisecond))
 		if readFromSocket(c, buff) {
