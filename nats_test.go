@@ -2,7 +2,7 @@ package prefab
 
 import (
 	"testing"
-	"github.com/apcera/nats"
+	"github.com/nats-io/nats"
 	"sync"
 	"time"
 )
