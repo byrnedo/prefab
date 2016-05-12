@@ -27,7 +27,7 @@ func init() {
 	runId = uuid.NewV1().String()
 }
 
-func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool) (*gDoc.Container, error) {
+func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (*gDoc.Container, error) {
 
 	if imgs, err := dockCli.ListImages(gDoc.ListImagesOptions{Filter: image}); (err != nil || len(imgs) == 0) || forcePull {
 		if err := dockCli.PullImage(gDoc.PullImageOptions{Repository: image, OutputStream: os.Stdout}, gDoc.AuthConfiguration{}); err != nil {
@@ -46,6 +46,7 @@ func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, 
 		},
 		HostConfig: &gDoc.HostConfig{
 			PortBindings: portB,
+			Privileged: privileged,
 		},
 	})
 	if err != nil {
@@ -66,6 +67,7 @@ type SetupOpts struct {
 	HostIp        string
 	ForcePull     bool
 	Envs          []string
+	Privileged    bool
 }
 
 type ConfOverrideFunc func(*SetupOpts)
@@ -102,7 +104,7 @@ func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, stri
 				HostIP:   defaultCnf.HostIp,
 				HostPort: hostPortStr,
 			}},
-		}, defaultCnf.Envs, defaultCnf.ForcePull); err != nil {
+		}, defaultCnf.Envs, defaultCnf.ForcePull, defaultCnf.Privileged); err != nil {
 			return nil, "", 0, errors.New("Error starting container:" + err.Error())
 		}
 	}
@@ -118,13 +120,13 @@ func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, stri
 	return con, port[0].HostIP, hostPort, nil
 }
 
-func StartCustom(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool) (string, error) {
+func StartCustom(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (string, error) {
 	var (
 		con *gDoc.Container
 		err error
 	)
 
-	if con, err = start(image, portB, envs, forcePull); err != nil {
+	if con, err = start(image, portB, envs, forcePull, privileged); err != nil {
 		return "", err
 	}
 
