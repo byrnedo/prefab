@@ -149,25 +149,26 @@ func Running(image string) (string, error) {
 	return cons[0].ID, nil
 }
 
-func Remove(id string) (bool, error) {
+func Remove(id string) (error) {
 
 	if err := dockCli.RemoveContainer(gDoc.RemoveContainerOptions{
+		RemoveVolumes: true,
 		Force: true,
 		ID:    id,
 	}); err != nil {
-		return false, err
+		return err
 	}
-	return true, nil
+	return nil
 
 }
 
-func RemoveByImage(image string) (bool, error) {
+func RemoveByImage(image string) (error) {
 	var (
 		id  string
 		err error
 	)
 	if id, err = Running(image); err != nil && len(id) > 0 {
-		return false, err
+		return err
 	}
 
 	return Remove(id)
