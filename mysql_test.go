@@ -3,6 +3,8 @@ package prefab
 import (
 	"testing"
 	"time"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func TestWaitForMysql(t *testing.T) {
@@ -26,6 +28,18 @@ func TestStartMysqlContainer(t *testing.T) {
 	}
 	t.Log(time.Now())
 
+	db, err := sql.Open("mysql", url)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, err := db.Query("SELECT 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Close()
+	db.Close()
+
 	Remove(id)
 }
 
@@ -42,6 +56,17 @@ func TestStartMysqlTmpfsContainer(t *testing.T) {
 		t.Fatal("Got error waiting on url " + url + ": " + err.Error())
 	}
 	t.Log(time.Now())
+
+	db, err := sql.Open("mysql", url)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = db.Exec("create database mysql_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	db.Close()
 
 	Remove(id)
 }

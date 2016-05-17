@@ -7,24 +7,24 @@ import (
 )
 
 const (
-	MysqlImage = "mysql:latest"
-	MysqlTmpfsImage = "theasci/docker-mysql-tmpfs:latest"
-	MysqlUser = "user"
-	MysqlPassword = "pass"
-	MysqlRootPassword = "toor"
-	MysqlDatabase = "test"
+	mysqlImage = "mysql:latest"
+	mysqlTmpfsImage = "theasci/docker-mysql-tmpfs:latest"
+	mysqlUser = "user"
+	mysqlPassword = "pass"
+	mysqlRootPassword = "toor"
+	mysqlDatabase = "test"
 
 )
 
 func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
 
 	var confFunc = func(baseOpts *SetupOpts){
-		baseOpts.Image = MysqlImage
+		baseOpts.Image = mysqlImage
 		baseOpts.ExposedPort = 3306
-		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_ROOT_PASSWORD="+MysqlRootPassword)
-		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_PASSWORD="+MysqlPassword)
-		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_USER="+MysqlUser)
-		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_DATABASE="+MysqlDatabase)
+		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_ROOT_PASSWORD="+ mysqlRootPassword)
+		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_PASSWORD="+ mysqlPassword)
+		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_USER="+ mysqlUser)
+		baseOpts.Envs = append(baseOpts.Envs, "MYSQL_DATABASE="+ mysqlDatabase)
 
 		for _, clientOpt := range clientOpts {
 			clientOpt(baseOpts)
@@ -36,18 +36,17 @@ func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string)
 		panic(err.Error())
 	}
 
-	return con.ID, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
+	return con.ID, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", mysqlUser, mysqlPassword, ip, port, mysqlDatabase)
 }
 
 func StartMysqlTmpfsContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
 
 	var confFunc = func(baseOpts *SetupOpts){
-		baseOpts.Image = MysqlTmpfsImage
+		baseOpts.Image = mysqlTmpfsImage
 		baseOpts.ExposedPort = 3306
 		baseOpts.Privileged = true
 		for _, clientOpt := range clientOpts {
 			clientOpt(baseOpts)
-			baseOpts.Envs = append(baseOpts.Envs, fmt.Sprintf(`MYSQL_SQL_TO_RUN="GRANT ALL ON %s.* TO %s@'%' IDENTIFIED BY '%s';CREATE DATABASE %s;`, MysqlDatabase, MysqlUser, MysqlPassword, MysqlDatabase))
 		}
 	}
 	con, ip, port, err := startStandardContainer(confFunc)
@@ -55,7 +54,7 @@ func StartMysqlTmpfsContainer(clientOpts ...ConfOverrideFunc) (id string, url st
 		panic(err.Error())
 	}
 
-	return con.ID, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
+	return con.ID, fmt.Sprintf("testrunner:testrunner@tcp(%s:%d)/", ip, port)
 }
 
 func WaitForMysql(url string, timeout time.Duration) error {
