@@ -8,6 +8,7 @@ import (
 
 const (
 	MysqlImage = "mysql:latest"
+	MysqlTmpfsImage = "theasci/docker-mysql-tmpfs:latest"
 	MysqlUser = "user"
 	MysqlPassword = "pass"
 	MysqlRootPassword = "toor"
@@ -30,6 +31,25 @@ func StartMysqlContainer(clientOpts ...ConfOverrideFunc) (id string, url string)
 		}
 	}
 
+	con, ip, port, err := startStandardContainer(confFunc)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return con.ID, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", MysqlUser, MysqlPassword, ip, port, MysqlDatabase)
+}
+
+func StartMysqlTmpfsContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
+
+	var confFunc = func(baseOpts *SetupOpts){
+		baseOpts.Image = MysqlTmpfsImage
+		baseOpts.ExposedPort = 3306
+		baseOpts.Privileged = true
+		for _, clientOpt := range clientOpts {
+			clientOpt(baseOpts)
+			baseOpts.Envs = append(baseOpts.Envs, fmt.Sprintf(`MYSQL_SQL_TO_RUN="GRANT ALL ON %s.* TO %s@'%' IDENTIFIED BY '%s';CREATE DATABASE %s;`, MysqlDatabase, MysqlUser, MysqlPassword, MysqlDatabase))
+		}
+	}
 	con, ip, port, err := startStandardContainer(confFunc)
 	if err != nil {
 		panic(err.Error())

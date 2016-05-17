@@ -22,7 +22,24 @@ func TestStartMysqlContainer(t *testing.T) {
 
 	t.Log(time.Now())
 	if err := WaitForMysql(url, 20 * time.Second); err != nil {
-		t.Error("Got error waiting on url " + url + ": " + err.Error())
+		t.Fatal("Got error waiting on url " + url + ": " + err.Error())
+	}
+	t.Log(time.Now())
+
+	Remove(id)
+}
+
+func TestStartMysqlTmpfsContainer(t *testing.T) {
+	id, url := StartMysqlTmpfsContainer()
+	if url == "" {
+		t.Fatal("Didn't get url")
+	}
+	t.Log(id)
+
+
+	t.Log(time.Now())
+	if err := WaitForMysql(url, 20 * time.Second); err != nil {
+		t.Fatal("Got error waiting on url " + url + ": " + err.Error())
 	}
 	t.Log(time.Now())
 
