@@ -68,6 +68,7 @@ type SetupOpts struct {
 	ForcePull     bool
 	Envs          []string
 	Privileged    bool
+	ExtraPorts    map[gDoc.Port][]gDoc.PortBinding
 }
 
 type ConfOverrideFunc func(*SetupOpts)
@@ -99,12 +100,20 @@ func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, stri
 	dockerExposedPort := gDoc.Port(containerPort + "/" + defaultCnf.Protocol)
 
 	if id, err := Running(defaultCnf.Image); err != nil || len(id) < 1 {
-		if con, err = start(defaultCnf.Image, map[gDoc.Port][]gDoc.PortBinding{
-			dockerExposedPort: []gDoc.PortBinding{gDoc.PortBinding{
-				HostIP:   defaultCnf.HostIp,
-				HostPort: hostPortStr,
-			}},
-		}, defaultCnf.Envs, defaultCnf.ForcePull, defaultCnf.Privileged); err != nil {
+		ports := map[gDoc.Port][]gDoc.PortBinding{
+			dockerExposedPort: []gDoc.PortBinding{
+				gDoc.PortBinding{
+					HostIP:   defaultCnf.HostIp,
+					HostPort: hostPortStr,
+				},
+			},
+		}
+
+		for exposed, binding := range defaultCnf.ExtraPorts {
+			ports[exposed] = binding
+		}
+
+		if con, err = start(defaultCnf.Image, ports, defaultCnf.Envs, defaultCnf.ForcePull, defaultCnf.Privileged); err != nil {
 			return nil, "", 0, errors.New("Error starting container:" + err.Error())
 		}
 	}
