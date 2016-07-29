@@ -27,7 +27,7 @@ func init() {
 	runId = uuid.NewV1().String()
 }
 
-func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (*gDoc.Container, error) {
+func start(image string, command []string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (*gDoc.Container, error) {
 
 	if imgs, err := dockCli.ListImages(gDoc.ListImagesOptions{Filter: image}); (err != nil || len(imgs) == 0) || forcePull {
 		if err := dockCli.PullImage(gDoc.PullImageOptions{Repository: image, OutputStream: os.Stdout}, gDoc.AuthConfiguration{}); err != nil {
@@ -41,6 +41,7 @@ func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, 
 			Labels: map[string]string{
 				"com.byrnedo.prefab.id": image + ":" + runId,
 			},
+			Cmd: command,
 			Env:   envs,
 			Image: image,
 		},
@@ -61,6 +62,7 @@ func start(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, 
 
 type SetupOpts struct {
 	Image         string
+	Command       []string
 	ExposedPort   int
 	PublishedPort int
 	Protocol      string
@@ -113,7 +115,7 @@ func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, stri
 			ports[exposed] = binding
 		}
 
-		if con, err = start(defaultCnf.Image, ports, defaultCnf.Envs, defaultCnf.ForcePull, defaultCnf.Privileged); err != nil {
+		if con, err = start(defaultCnf.Image, defaultCnf.Command, ports, defaultCnf.Envs, defaultCnf.ForcePull, defaultCnf.Privileged); err != nil {
 			return nil, "", 0, errors.New("Error starting container:" + err.Error())
 		}
 	}
@@ -129,13 +131,13 @@ func startStandardContainer(cnfOverride ConfOverrideFunc) (*gDoc.Container, stri
 	return con, port[0].HostIP, hostPort, nil
 }
 
-func StartCustom(image string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (string, error) {
+func StartCustom(image string, command []string, portB map[gDoc.Port][]gDoc.PortBinding, envs []string, forcePull bool, privileged bool) (string, error) {
 	var (
 		con *gDoc.Container
 		err error
 	)
 
-	if con, err = start(image, portB, envs, forcePull, privileged); err != nil {
+	if con, err = start(image, command, portB, envs, forcePull, privileged); err != nil {
 		return "", err
 	}
 
