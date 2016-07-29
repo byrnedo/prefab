@@ -43,7 +43,7 @@ func TestSetupSftpContainer(t *testing.T) {
 
 	client := getSftpClient(url, t)
 
-	_, err := client.ReadDir("./")
+	_, err := client.ReadDir("./data")
 	if err != nil {
 		t.Fatal(err)
 	}

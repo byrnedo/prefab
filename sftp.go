@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	SftpImage = "atmoz/sftp:latest"
+	SftpImage = "byrnedo/sftp:1"
 	SftpUser = "user"
 	SftpPassword = "pass"
 )
