@@ -1,9 +1,9 @@
 package prefab
 
 import (
-	"testing"
-	"github.com/nats-io/nats"
+	nats "github.com/nats-io/go-nats"
 	"sync"
+	"testing"
 	"time"
 )
 
@@ -17,7 +17,7 @@ func TestStartNatsStreamingContainer(t *testing.T) {
 		t.Error("id empty")
 	}
 
-	if err := WaitForNatsStreaming(url, 10 *time.Second) ; err != nil {
+	if err := WaitForNatsStreaming(url, 10*time.Second); err != nil {
 		t.Error(err)
 	}
 
@@ -28,7 +28,7 @@ func TestStartNatsStreamingContainer(t *testing.T) {
 
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
-	con.Subscribe("test", func(m *nats.Msg){
+	con.Subscribe("test", func(m *nats.Msg) {
 		if string(m.Data) != "well hello" {
 			t.Error("Unexpected response", string(m.Data))
 		}
