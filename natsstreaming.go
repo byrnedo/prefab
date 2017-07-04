@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	NatsStreamingImage = "mattmastersitb/nats-streaming-server:latest"
+	NatsStreamingImage = "nats-streaming:latest"
 )
 
 func StartNatsStreamingContainer(clientOpts ...ConfOverrideFunc) (id string, url string) {
